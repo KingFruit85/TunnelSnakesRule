@@ -1,7 +1,7 @@
 export interface TeamScore {
     id: string;
-    teamName: string;
+    name: string;
     players: string[];
     score: number;
-    winnder: boolean;
+    winner: boolean;
   }

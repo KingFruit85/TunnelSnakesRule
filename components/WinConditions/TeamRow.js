@@ -1,18 +1,7 @@
 import { useState, useEffect } from "react";
 
 import {
-  Row,
-  Table,
-  TableHeader,
-  Column,
-  TableBody,
-  Cell,
   Input,
-  Checkbox,
-  Radio,
-  TextField,
-  Label,
-  ComboBox,
   Button,
   Popover,
   ListBox,
@@ -62,9 +51,6 @@ const TeamRow = ({ players, deleteTeam, id, updateTeam, checkTeamScore }) => {
     notifyChange();
   }, [teamScore, teamName, selectedPlayers]); // Call notifyChange whenever teamScore changes
 
-  const SetWinner = () => {
-    setTeamIsWinner(true);
-  };
 
   return (
     <div
@@ -225,7 +211,7 @@ const TeamRow = ({ players, deleteTeam, id, updateTeam, checkTeamScore }) => {
           style={{ width: 479, height: 32, position: "relative" }}
             onClick={() => deleteTeam(id)}
           >
-            <img src="./Bin.svg" alt="Delete team" />
+            <img src="./Icons/Bin.svg" alt="Delete team" />
           </button>
         )}
       </div>

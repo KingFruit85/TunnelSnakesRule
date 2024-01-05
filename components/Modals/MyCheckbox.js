@@ -20,7 +20,6 @@ const MyCheckbox = ({ text, id, image, handleCheckboxChange }) => {
         </div>
         {image ? (
           <img
-            className=""
             style={{
               width: 40,
               height: 40,

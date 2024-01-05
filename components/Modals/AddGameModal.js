@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import {
   Modal,
@@ -10,27 +10,43 @@ import {
   TextField,
   FieldError,
   DialogTrigger,
+  Checkbox,
 } from "react-aria-components";
 
-import "../styles/styles.css";
-
-const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
-  const [playerName, setPlayerName] = useState("");
-
+const AddGameModal = ({
+  isOpen,
+  onClose,
+  addNewGame,
+  setNewBoardgameName,
+  setNewBoardgameWinCondition,
+}) => {
   const handleSubmit = () => {
-    addNewPlayer(playerName);
+    addNewGame();
   };
 
-  const handlePlayerNameChange = (event) => {
-    setPlayerName(event.target.value);
+  const handleClose = () => {
+    onClose();
   };
 
+  const setTeamBased = () => {
+    setNewBoardgameWinCondition("Team based");
+  };
+
+  const setCoOperative = () => {
+    setNewBoardgameWinCondition("Co-operative");
+  };
+
+  const setLeaderboard = () => {
+    setNewBoardgameWinCondition("Leaderboard");
+  };
+
+  // TODO: update list box to this https://react-spectrum.adobe.com/react-aria/examples/image-grid.html
   return (
     <div
       className="modal-container"
       style={{
         width: 496,
-        height: 481,
+        height: 529,
         padding: 48,
         background: "#020202",
         border: "1px white solid",
@@ -50,7 +66,7 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
           wordWrap: "break-word",
         }}
       >
-        Add New Player
+        Add New Game
       </div>
       <div
         style={{
@@ -80,11 +96,10 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
               wordWrap: "break-word",
             }}
           >
-            Player name
+            Name
           </div>
           <Input
-            onChange={handlePlayerNameChange}
-            value={playerName}
+            onChange={(e) => setNewBoardgameName(e.target.value)}
             style={{
               alignSelf: "stretch",
               paddingLeft: 12,
@@ -119,52 +134,95 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
               wordWrap: "break-word",
             }}
           >
-            Player photo
-          </div>
-        </div>
-        <div
-          style={{
-            justifyContent: "flex-start",
-            alignItems: "center",
-            gap: 16,
-            display: "inline-flex",
-          }}
-        >
-          <div style={{ width: 60, height: 60, position: "relative" }}>
-            <Button
-              style={{
-                width: 60,
-                height: 60,
-                left: 0,
-                top: 0,
-                position: "absolute",
-                borderRadius: 9999,
-                border: "1px #96C431 dotted",
-              }}
-            />
-            {
-              <img
-                src="./ButtonPlus.svg"
-                style={{
-                  width: 16,
-                  height: 16,
-                  left: 22,
-                  top: 22,
-                  position: "absolute",
-                }}
-              ></img>
-            }
+            Win conditions
           </div>
           <div
             style={{
-              color: "white",
-              fontSize: 14,
-              fontFamily: "Montserrat",
-              fontWeight: "500",
-              wordWrap: "break-word",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              alignItems: "flex-start",
+              gap: 20,
+              display: "flex",
             }}
           >
-            Upload photo
+            <div
+              style={{
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: 12,
+                display: "inline-flex",
+              }}
+            >
+              <Checkbox
+                onChange={setTeamBased}
+                style={{
+                  color: "white",
+                  fontSize: 16,
+                  fontFamily: "Montserrat",
+                  fontWeight: "400",
+                  wordWrap: "break-word",
+                }}
+              >
+                <div className="checkbox">
+                  <svg viewBox="0 0 18 18" aria-hidden="true">
+                    <polyline points="1 9 7 14 15 4" />
+                  </svg>
+                </div>
+                Team based
+              </Checkbox>
+            </div>
+            <div
+              style={{
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: 12,
+                display: "inline-flex",
+              }}
+            >
+              <Checkbox
+                onChange={setCoOperative}
+                style={{
+                  color: "white",
+                  fontSize: 16,
+                  fontFamily: "Montserrat",
+                  fontWeight: "400",
+                  wordWrap: "break-word",
+                }}
+              >
+                <div className="checkbox">
+                  <svg viewBox="0 0 18 18" aria-hidden="true">
+                    <polyline points="1 9 7 14 15 4" />
+                  </svg>
+                </div>
+                Co-operative
+              </Checkbox>
+            </div>
+            <div
+              style={{
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: 12,
+                display: "inline-flex",
+              }}
+            >
+              <Checkbox
+                onChange={setLeaderboard}
+                style={{
+                  color: "white",
+                  fontSize: 16,
+                  fontFamily: "Montserrat",
+                  fontWeight: "400",
+                  wordWrap: "break-word",
+                }}
+              >
+                <div className="checkbox">
+                  <svg viewBox="0 0 18 18" aria-hidden="true">
+                    <polyline points="1 9 7 14 15 4" />
+                  </svg>
+                </div>
+                Leaderboard
+              </Checkbox>
+            </div>
           </div>
         </div>
       </div>
@@ -194,6 +252,7 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
             display: "inline-flex",
           }}
         >
+          <img src="./Icons/ButtonPlus.svg" />
           <div
             style={{
               color: "#96C431",
@@ -203,11 +262,11 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
               wordWrap: "break-word",
             }}
           >
-            Add player
+            Add game
           </div>
         </Button>
         <Button
-          onPress={onClose}
+          onPress={handleClose}
           style={{
             width: 400,
             paddingLeft: 20,
@@ -240,4 +299,4 @@ const AddPlayerModal = ({ isOpen, onClose, addNewPlayer }) => {
   );
 };
 
-export default AddPlayerModal;
+export default AddGameModal;

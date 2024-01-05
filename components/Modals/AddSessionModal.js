@@ -12,6 +12,7 @@ import {
   TextField,
   FieldError,
   DialogTrigger,
+  Checkbox,
 } from "react-aria-components";
 
 import MyCheckbox from "./MyCheckbox";
@@ -185,7 +186,7 @@ const AddSessionModal = ({
             }}>
               {avaliblePlayers.map((player) => (
                 <div key={player.id} style={{ paddingBottom: '10px' }}>
-                <MyCheckbox text={player.name} id={player.id} image={"./Holly.svg"} handleCheckboxChange={handleCheckboxChange} />
+                <MyCheckbox text={player.name} id={player.id} image={"./PlayerImages/Holly.svg"} handleCheckboxChange={handleCheckboxChange} />
                 </div>
               ))}
             </div>
@@ -218,7 +219,7 @@ const AddSessionModal = ({
             display: "inline-flex",
           }}
         >
-          <img src="./ButtonPlus.svg" />
+          <img src="./Icons/ButtonPlus.svg" />
           <div
             style={{
               color: "#96C431",

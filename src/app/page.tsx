@@ -11,14 +11,14 @@ import {
   where,
 } from "firebase/firestore";
 import { Button, Link } from "react-aria-components";
-import AddPlayerModal from "../../components/AddPlayerModal";
-import AddSessionModal from "../../components/AddSessionModal";
-import AddGameModal from "../../components/AddGameModal";
-import AddPlayedGameToSessionModal from "../../components/AddPlayedGameToSessionModal";
+import AddPlayerModal from "../../components/Modals/AddPlayerModal";
+import AddSessionModal from "../../components/Modals/AddSessionModal";
+import AddGameModal from "../../components/Modals/AddGameModal";
+import AddPlayedGameToSessionModal from "../../components/Modals/AddPlayedGameToSessionModal";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { Player } from "../../models/Player";
-import { Session } from "../../models/Session";
+import { GameSession } from "../../models/Session";
 import { Game } from "../../models/Game";
 
 import React from "react";
@@ -26,6 +26,9 @@ import { PlayedGame } from "../../models/PlayedGame";
 import "../../styles/styles.css";
 
 import { ActionTypes, reducer, initialState } from "../../helpers/reducer";
+import { TeamScore } from "../../models/TeamScore";
+import { CurrentSession } from "../../components/CurrentSession/CurrentSession";
+import { PreviousSessions } from "../../components/PreviousSessions/PreviousSessions";
 
 export default function Home() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -46,7 +49,9 @@ export default function Home() {
     avalibleBoardgames,
     newGameName,
     newGameWinCondition,
-    newSessionPlayerIds
+    newSessionPlayerIds,
+    currentSessionNewGameName,
+    currentSessionGameResults,
   } = state;
 
   const [newPlayerPicture, setNewPlayerPicture] = useState("");
@@ -78,6 +83,7 @@ export default function Home() {
   };
 
   const setBoardgameToAdd = (name: string) => {
+    console.log("setBoardgameToAdd = " + name);
     dispatch({
       type: ActionTypes.addCurrentSessionNewGameName,
       payload: name,
@@ -106,9 +112,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("newsessionplayeerids useEffect")
+    console.log("newsessionplayeerids useEffect");
     var playersToAdd: Player[] = [];
-    newSessionPlayerIds.forEach((id:string) => {
+    newSessionPlayerIds.forEach((id: string) => {
       players.find((player: Player) => {
         if (player.id === id) {
           playersToAdd.push(player);
@@ -120,8 +126,7 @@ export default function Home() {
       type: ActionTypes.newSessionPlayers,
       payload: playersToAdd,
     });
-  },[newSessionPlayerIds])
-
+  }, [newSessionPlayerIds]);
 
   const setNewGameName = (name: string) => {
     dispatch({
@@ -130,21 +135,41 @@ export default function Home() {
     });
   };
 
-  const toggleAddPlayedGameToSessionModal = () =>
+  const toggleAddPlayedGameToSessionModal = () => {
     dispatch({
       type: ActionTypes.openAddNewGameToSessionModal,
       payload: !openAddNewGameToSessionModal,
     });
+  };
 
   const endSession = async () => {
-    dispatch({ type: ActionTypes.currentSession, payload: null });
+    dispatch({ type: ActionTypes.endCurrentSession, payload: true });
+    dispatch({ type: ActionTypes.setCurrentSession, payload: null });
+
+    const sessionQuery = query(
+      collection(db, "Session"),
+      where("id", "==", currentSession!.id)
+    );
+
+    const querySnapshot = await getDocs(sessionQuery);
+
+    if (querySnapshot.empty) {
+      throw new Error("Session not found");
+    }
+
+    const sessionDoc = querySnapshot.docs[0];
+
+    await updateDoc(sessionDoc.ref, {
+      ended: true,
+    });
+
   };
 
   const fetchSessions = async () => {
     try {
       const sessionCol = collection(db, "/Session/");
       const snapshot = await getDocs(sessionCol);
-      const sessionList = snapshot.docs.map((doc) => doc.data()) as Session[];
+      const sessionList = snapshot.docs.map((doc) => doc.data()) as GameSession[];
 
       dispatch({ type: ActionTypes.sessions, payload: sessionList });
       dispatch({ type: ActionTypes.isLoading, payload: false });
@@ -154,13 +179,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("fetchsessions useEffect")
+    console.log("fetchsessions useEffect");
 
     fetchSessions();
   }, []);
 
   useEffect(() => {
-    console.log("getboardgames useEffect")
+    console.log("getboardgames useEffect");
 
     getBoardgames();
   }, []);
@@ -170,7 +195,7 @@ export default function Home() {
     const sessionsSnapshot = await getDocs(sessionCollection);
     const sessionList = sessionsSnapshot.docs.map((session) =>
       session.data()
-    ) as Session[];
+    ) as GameSession[];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -178,14 +203,14 @@ export default function Home() {
     sessionList.find((session) => {
       const sessionDate = session.date.toDate();
       sessionDate.setHours(0, 0, 0, 0);
-      sessionDate.getTime() === today.getTime()
-        ? dispatch({ type: ActionTypes.currentSession, payload: session })
+      sessionDate.getTime() === today.getTime() && !session.ended
+        ? dispatch({ type: ActionTypes.setCurrentSession, payload: session })
         : null;
     });
   };
 
   useEffect(() => {
-    console.log("updatecurrent session useEffect")
+    console.log("updatecurrent session useEffect");
 
     updateCurrentSession();
   }, []);
@@ -217,7 +242,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("getplayers useEffect")
+    console.log("getplayers useEffect");
 
     getPlayers();
   }, []);
@@ -278,7 +303,7 @@ export default function Home() {
       date: Timestamp.now(),
       id: uuidv4(),
       ended: false,
-    } as unknown as Session;
+    } as unknown as GameSession;
 
     try {
       const sessionCollection = collection(db, "/Session/");
@@ -329,6 +354,13 @@ export default function Home() {
     }
   };
 
+  const setNewGameResults = (gameResults: TeamScore[]) => {
+    dispatch({
+      type: ActionTypes.addCurrentSessionGameResults,
+      payload: gameResults,
+    });
+  };
+
   const addNewPlayedGameToSession = async () => {
     try {
       const sessionQuery = query(
@@ -344,10 +376,11 @@ export default function Home() {
 
       const sessionDoc = querySnapshot.docs[0];
 
+      console.log(currentSessionGameResults);
       const playedGame = {
         id: uuidv4(),
-        name: newGameName,
-        playersAndScores: [],
+        name: currentSessionNewGameName,
+        results: currentSessionGameResults,
         notes: "",
       } as PlayedGame;
 
@@ -370,15 +403,10 @@ export default function Home() {
     }
   };
 
-  const previousSessions = sessions.filter(
-    (session: Session) => session.id !== currentSession?.id
-  );
-
-  const sortedSessions = [...previousSessions]
-    .sort((a, b) => {
-      return a.date - b.date;
-    })
-    .reverse();
+  const sortedSessions = sessions
+  .filter((session: GameSession) => session.ended === true)
+  .sort((a: GameSession, b: GameSession) => b.date.toDate().getTime() - a.date.toDate().getTime())
+  .reverse() as GameSession[];
 
   return (
     <div className="flex flex-col grow items-center bg-neutral-900">
@@ -392,6 +420,7 @@ export default function Home() {
             onClose={toggleAddPlayedGameToSessionModal}
             getGameDetails={getGameDetails}
             players={currentSession.players}
+            saveGameResults={setNewGameResults}
           />
         </div>
       ) : null}
@@ -462,68 +491,13 @@ export default function Home() {
             Current Session
           </div>
           {currentSession ? (
-            <div className="self-stretch px-6 py-5 bg-black border border-orange-500 flex-col justify-start items-start gap-[27px] flex ">
-              <div className="self-stretch justify-between items-start inline-flex ">
-                <div className="justify-start items-start gap-4 flex ">
-                  <div className="text-white text-2xl font-semibold font-['Montserrat']">
-                    {currentSession.date.toDate().toLocaleDateString()}
-                  </div>
-                  <div className="text-white text-2xl font-normal font-['Montserrat']">
-                    {currentSession.name}
-                  </div>
-                </div>
-                <div className="justify-start items-start gap-8 flex ">
-                  <div className="justify-start items-center gap-2 flex ">
-                    <img src="./Dice.svg" alt="Add new session" />
-                    <div className="text-white text-xl font-medium font-['Montserrat'] ">
-                      {currentSession.players.length}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="self-stretch flex-col justify-start items-start gap-3 flex ">
-                <ul>
-                  {currentSession.gamesPlayed.map((game: PlayedGame) => (
-                    <li key={game.id}>
-                      <div className="self-stretch justify-start items-start gap-2 inline-flex ">
-                        <div className="justify-start items-center gap-2 flex">
-                          <img src="./Players.svg" alt="number of players" />
-                          <div className="text-white text-xl font-medium font-['Montserrat']">
-                            {game.playersAndScores.length}
-                          </div>
-                        </div>
-                        <div className="text-white text-xl font-normal font-['Montserrat']">
-                          -
-                        </div>
-                        <div className="text-white text-xl font-normal font-['Montserrat']">
-                          {game.name}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="justify-start items-start gap-6 inline-flex">
-                <Button
-                  onPress={toggleAddPlayedGameToSessionModal}
-                  className="px-5 py-2.5 bg-black rounded-sm border border-lime-500 justify-start items-center gap-3 flex"
-                >
-                  <img src="./Trophy.svg" alt="Add new session" />
-                  <div className="text-lime-500 text-base font-medium font-['Montserrat']">
-                    Add result
-                  </div>
-                </Button>
-                <div className="px-5 py-2.5 bg-black rounded-sm border border-lime-500 justify-start items-center gap-3 flex">
-                  <img src="./Time.svg" alt="Add new session" />
-                  <Button
-                    onPress={endSession}
-                    className="text-lime-500 text-base font-medium font-['Montserrat']"
-                  >
-                    End session
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <CurrentSession
+              currentSession={currentSession as GameSession}
+              toggleAddPlayedGameToSessionModal={
+                toggleAddPlayedGameToSessionModal
+              }
+              endSession={endSession}
+            />
           ) : null}
         </div>
         {!currentSession ? (
@@ -534,7 +508,7 @@ export default function Home() {
               className="px-5 py-2.5 bg-black rounded-sm border border-lime-500 justify-start flex items-center"
             >
               <img
-                src="./ButtonPlus.svg"
+                src="./Icons/ButtonPlus.svg"
                 alt="Add new session"
                 className="mr-4 pb-0.5"
               />
@@ -542,41 +516,8 @@ export default function Home() {
             </Button>
           </div>
         ) : null}
-        <div className="grow justify-between flex-col items-start">
-          <div className="text-white text-[32px] font-semibold font-['Montserrat']">
-            History
-          </div>
-          <ul className="flex-col justify-start items-start gap-8 inline-flex">
-            {sortedSessions.map((session: Session) => (
-              <li key={session.id}>
-                <div className="w-[1000px] h-[133px] px-6 pt-5 pb-6 bg-black rounded-sm flex-col justify-start items-start gap-2 inline-flex ">
-                  <div className="self-stretch justify-between items-center inline-flex">
-                    <div className="text-lime-500 text-base font-semibold font-['Montserrat']">
-                      {session.date.toDate().toLocaleDateString()}
-                    </div>
-                    <div className="justify-start items-start gap-8 flex">
-                      <div className="justify-start items-center gap-2 flex">
-                        <img src="./Dice.svg" alt="Add new session" />
-                        <div className="text-white text-xl font-medium font-['Montserrat']">
-                          {session.gamesPlayed.length}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-white text-2xl font-normal font-['Montserrat']">
-                    {session.name}
-                  </div>
-                  <div className="rounded-sm justify-start items-center gap-2 inline-flex">
-                    <div className="text-orange-500 text-base font-medium font-['Montserrat'] underline">
-                      View session
-                    </div>
-                    <img src="./RightArrow.svg" alt="Add new session" />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PreviousSessions sortedSessions={sortedSessions}></PreviousSessions>
+        
       </div>
     </div>
   );

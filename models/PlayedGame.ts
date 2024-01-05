@@ -1,8 +1,9 @@
 import { PlayerScore } from "./PlayerScore";
+import { TeamScore } from "./TeamScore";
 
 export interface PlayedGame {
     id: string;
     name: string;
-    playersAndScores: PlayerScore[];
+    results: TeamScore[];
     notes: string;
 };

@@ -1,11 +1,12 @@
 import { Game } from "../models/Game";
 import { Player } from "../models/Player";
-import { Session } from "../models/Session";
+import { GameSession } from "../models/Session";
+import { TeamScore } from "../models/TeamScore";
 
 export enum ActionTypes {
   isLoading,
   sessions,
-  currentSession,
+  setCurrentSession,
   newPlayerName,
   newSessionName,
   newSessionPlayers,
@@ -21,7 +22,8 @@ export enum ActionTypes {
   addCurrentSessionGameResults,
   setGameWinCondition,
   addNewSession,
-  setNewSessionPlayerIds
+  setNewSessionPlayerIds,
+  endCurrentSession,
 }
 
 export type ActionTypeWithPayload = {
@@ -31,8 +33,8 @@ export type ActionTypeWithPayload = {
 
 export type State = {
   isLoading: boolean;
-  sessions: Session[];
-  currentSession: Session | null;
+  sessions: GameSession[];
+  currentSession: GameSession | null;
   OpenAddNewPlayerModal: boolean;
   openAddNewGameToSessionModal: boolean;
   newPlayerName: string;
@@ -49,7 +51,7 @@ export type State = {
   newSessionPlayerIds: string[];
   newGameResults: any;
   currentSessionNewGameName: string;
-  currentSessionGameResults: any;
+  currentSessionGameResults: TeamScore[];
 
 };
 
@@ -89,7 +91,7 @@ export function reducer(state: State, action: ActionTypeWithPayload) {
         ...state,
         sessions: action.payload,
       };
-    case ActionTypes.currentSession:
+    case ActionTypes.setCurrentSession:
       return {
         ...state,
         currentSession: action.payload,
@@ -167,12 +169,20 @@ export function reducer(state: State, action: ActionTypeWithPayload) {
     case ActionTypes.addCurrentSessionGameResults:
       return {
         ...state,
-        newGameResults: action.payload,
+        currentSessionGameResults: action.payload,
       };
-    case ActionTypes.addCurrentSessionGameResults:
+    case ActionTypes.addCurrentSessionNewGameName:
       return {
         ...state,
-        currentSessionGameResults: action.payload,
+        currentSessionNewGameName: action.payload,
+      };
+    case ActionTypes.endCurrentSession:
+      return {
+        ...state,
+        currentSession: {
+          ...state.currentSession,
+          ended: action.payload,
+        }
       };
     
     default:

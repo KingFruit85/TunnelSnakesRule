@@ -15,7 +15,6 @@ import {
   Button,
 } from "react-aria-components";
 
-import "../styles/styles.css";
 
 import TeamRow from "./TeamRow";
 
@@ -41,7 +40,6 @@ const CoOperative = ({ players, results }) => {
     }));
 
     setTeams(updatedTeams);
-    console.log(updatedTeams);
   }
 
   const addTeam = () => {
