@@ -14,7 +14,7 @@ import { Button, Link } from "react-aria-components";
 import AddPlayerModal from "../../components/Modals/AddPlayerModal";
 import AddSessionModal from "../../components/Modals/AddSessionModal";
 import AddGameModal from "../../components/Modals/AddGameModal";
-import AddPlayedGameToSessionModal from "../../components/Modals/AddPlayedGameToSessionModal";
+import AddGameResultModal from "../../components/Modals/AddGameResultModal";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { Player } from "../../models/Player";
@@ -26,20 +26,18 @@ import { PlayedGame } from "../../models/PlayedGame";
 import "../../styles/styles.css";
 
 import { ActionTypes, reducer, initialState } from "../../helpers/reducer";
-import { TeamScore } from "../../models/TeamScore";
 import { CurrentSession } from "../../components/CurrentSession/CurrentSession";
 import { PreviousSessions } from "../../components/PreviousSessions/PreviousSessions";
+import { PlayerScore } from "../../models/PlayerScore";
+import { ScoringType } from "../../components/Enums/ScoringType";
 
 export default function Home() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const {
     sessions,
-    isLoading,
     currentSession,
     OpenAddNewPlayerModal,
-    newPlayerName,
-    newSessionName,
     newSessionPlayers,
     setSessionGames,
     openAddNewSessionModal,
@@ -56,6 +54,9 @@ export default function Home() {
 
   const [newPlayerPicture, setNewPlayerPicture] = useState("");
   const [newSessionPicture, setSessionPicture] = useState("");
+  const [test, setTest] = useState("");
+
+  useEffect(() => {setTest("")}, [currentSession]); // refreshes the current session when a result is added
 
   const toggleAddNewPlayerModal = () =>
     dispatch({
@@ -83,7 +84,6 @@ export default function Home() {
   };
 
   const setBoardgameToAdd = (name: string) => {
-    console.log("setBoardgameToAdd = " + name);
     dispatch({
       type: ActionTypes.addCurrentSessionNewGameName,
       payload: name,
@@ -140,6 +140,7 @@ export default function Home() {
       type: ActionTypes.openAddNewGameToSessionModal,
       payload: !openAddNewGameToSessionModal,
     });
+    updateCurrentSession();
   };
 
   const endSession = async () => {
@@ -162,17 +163,21 @@ export default function Home() {
     await updateDoc(sessionDoc.ref, {
       ended: true,
     });
-
   };
 
   const fetchSessions = async () => {
     try {
       const sessionCol = collection(db, "/Session/");
       const snapshot = await getDocs(sessionCol);
-      const sessionList = snapshot.docs.map((doc) => doc.data()) as GameSession[];
+      const sessionList = snapshot.docs.map((doc) =>
+        doc.data()
+      ) as GameSession[];
 
       dispatch({ type: ActionTypes.sessions, payload: sessionList });
       dispatch({ type: ActionTypes.isLoading, payload: false });
+
+      setTest("test");
+
     } catch (error) {
       console.log("error fetching sessions: " + error);
     }
@@ -204,7 +209,7 @@ export default function Home() {
       const sessionDate = session.date.toDate();
       sessionDate.setHours(0, 0, 0, 0);
       sessionDate.getTime() === today.getTime() && !session.ended
-        ? dispatch({ type: ActionTypes.setCurrentSession, payload: session })
+        ? (dispatch({ type: ActionTypes.setCurrentSession, payload: session }))
         : null;
     });
   };
@@ -225,15 +230,15 @@ export default function Home() {
       alert("failed to load games: " + error);
     }
   };
-
   const getPlayers = async () => {
     try {
       const playerCollection = collection(db, "/Player/");
       const snapshot = await getDocs(playerCollection);
       const playerList = snapshot.docs.map((player) =>
         player.data()
-      ) as Player[];
 
+        ) as Player[];
+        
       dispatch({ type: ActionTypes.players, payload: playerList });
       getBoardgames();
     } catch (error) {
@@ -303,6 +308,7 @@ export default function Home() {
       date: Timestamp.now(),
       id: uuidv4(),
       ended: false,
+      scoringType: ScoringType.LEADERBOARD,
     } as unknown as GameSession;
 
     try {
@@ -354,14 +360,15 @@ export default function Home() {
     }
   };
 
-  const setNewGameResults = (gameResults: TeamScore[]) => {
+  const setNewGameResults = (gameResults: PlayerScore[]) => {
     dispatch({
       type: ActionTypes.addCurrentSessionGameResults,
       payload: gameResults,
     });
   };
 
-  const addNewPlayedGameToSession = async () => {
+  const addNewPlayedGameToSession = async (results : any) => {
+
     try {
       const sessionQuery = query(
         collection(db, "Session"),
@@ -376,12 +383,16 @@ export default function Home() {
 
       const sessionDoc = querySnapshot.docs[0];
 
-      console.log(currentSessionGameResults);
       const playedGame = {
         id: uuidv4(),
-        name: currentSessionNewGameName,
-        results: currentSessionGameResults,
-        notes: "",
+        gameName: currentSessionNewGameName,
+        playerScores: currentSessionGameResults,
+        notes: results.notes,
+        scoringDirection: results.scoringDirection,
+        gameScoringType: results.gameScoringType,
+        winningTeam: results.winningTeam,
+        playersWon: results.playersWon,
+
       } as PlayedGame;
 
       const sessionData = sessionDoc.data();
@@ -404,21 +415,22 @@ export default function Home() {
   };
 
   const sortedSessions = sessions
-  .filter((session: GameSession) => session.ended === true)
-  .sort((a: GameSession, b: GameSession) => b.date.toDate().getTime() - a.date.toDate().getTime())
-  .reverse() as GameSession[];
+    .filter((session: GameSession) => session.ended === true)
+    .sort(
+      (a: GameSession, b: GameSession) =>
+        b.date.toDate().getTime() - a.date.toDate().getTime()
+    ) as GameSession[];
+
 
   return (
-    <div className="flex flex-col grow items-center bg-neutral-900">
+    <div className="page">
       {openAddNewGameToSessionModal ? (
         <div className="modal-overlay">
-          <AddPlayedGameToSessionModal
+          <AddGameResultModal
             boardgames={avalibleBoardgames}
             addNewPlayedGameToSession={addNewPlayedGameToSession}
             setNewGameName={setBoardgameToAdd}
-            isOpen={openAddNewGameToSessionModal}
             onClose={toggleAddPlayedGameToSessionModal}
-            getGameDetails={getGameDetails}
             players={currentSession.players}
             saveGameResults={setNewGameResults}
           />
@@ -430,7 +442,6 @@ export default function Home() {
             isOpen={openAddNewSessionModal}
             onClose={toggleAddNewSessionModal}
             addNewSession={addNewSession}
-            setNewSessionName={setNewSessionName}
             avaliblePlayers={players}
             setNewSessionPlayers={setNewSessionPlayerIds}
           />
@@ -445,51 +456,41 @@ export default function Home() {
           />
         </div>
       ) : null}
-
       {openAddNewGameModal ? (
         <AddGameModal
-          isOpen={openAddNewGameModal}
           onClose={toggleAddNewGameModal}
           addNewGame={addNewGame}
           setNewBoardgameName={setNewGameName}
           setNewBoardgameWinCondition={setNewBoardgameWinCondition}
         />
       ) : null}
-      <div className="self-stretch py-5 bg-black justify-start items-center gap-5 space-y-4">
-        <div className="grow shrink basis-0 pr-5 justify-center items-center gap-5 flex">
-          <div className="text-white text-5xl font-bold font-['Montserrat']">
-            🐍
-          </div>
-          <Link
-            href="https://www.youtube.com/watch?v=S0ximxe4XtU"
-            className="text-white text-5xl font-bold font-['Montserrat']"
-          >
-            Tunnel Snakes Rule
-          </Link>
-          <div className="text-white text-5xl font-bold font-['Montserrat']">
-            🐍
-          </div>
-        </div>
-        <div className="px-10 justify-center items-center gap-2 flex flex-row">
+
+      <div className="header">
+        <Link
+          href="https://www.youtube.com/watch?v=S0ximxe4XtU"
+          className="header-text"
+        >
+          🐍 Tunnel Snakes Rule 🐍
+        </Link>
+
+        <div className="current-session-buttons">
           <Button
             onPress={toggleAddNewPlayerModal}
-            className="px-10 bg-lime-500 justify-center items-center gap-2 inline-flex"
+            className="green-button"
           >
             Add new player
           </Button>
           <Button
             onPress={toggleAddNewGameModal}
-            className="px-10 bg-lime-500 justify-center items-center gap-2 inline-flex"
+            className="green-button"
           >
             Add new game
           </Button>
         </div>
       </div>
-      <div className="flex-col justify-start items-center gap-12 flex ">
-        <div className="self-stretch flex-col justify-start items-start gap-6 flex">
-          <div className="text-white text-[32px] font-semibold font-['Montserrat']">
-            Current Session
-          </div>
+
+      <div className="main-content ">
+        <div>
           {currentSession ? (
             <CurrentSession
               currentSession={currentSession as GameSession}
@@ -500,24 +501,23 @@ export default function Home() {
             />
           ) : null}
         </div>
-        {!currentSession ? (
-          <div className="grow justify-between flex-col items-start">
-            <Button
-              onPress={toggleAddNewSessionModal}
-              isDisabled={currentSession ? true : false}
-              className="px-5 py-2.5 bg-black rounded-sm border border-lime-500 justify-start flex items-center"
-            >
-              <img
-                src="./Icons/ButtonPlus.svg"
-                alt="Add new session"
-                className="mr-4 pb-0.5"
-              />
-              <div>New session</div>
-            </Button>
-          </div>
-        ) : null}
+        <div>
+          {!currentSession ? (
+              <Button
+                onPress={toggleAddNewSessionModal}
+                isDisabled={currentSession ? true : false}
+                className="px-5 py-2.5 bg-black rounded-sm border border-lime-500 justify-start flex items-center"
+              >
+                <img
+                  src="./Icons/ButtonPlus.svg"
+                  alt="Add new session"
+                  className="mr-4 pb-0.5"
+                />
+                <div>New session</div>
+              </Button>
+          ) : null}
+        </div>
         <PreviousSessions sortedSessions={sortedSessions}></PreviousSessions>
-        
       </div>
     </div>
   );

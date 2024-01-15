@@ -1,52 +1,53 @@
-import React, { useEffect } from "react";
+import React, { ChangeEvent, useEffect } from "react";
 import { useState } from "react";
-import {
-  Modal,
-  Dialog,
-  Button,
-  Input,
-  Label,
-  Heading,
-  TextField,
-  FieldError,
-  DialogTrigger,
-  Checkbox,
-} from "react-aria-components";
+import { Button, Input } from "react-aria-components";
 
-const AddGameModal = ({
-  isOpen,
-  onClose,
-  addNewGame,
-  setNewBoardgameName,
-  setNewBoardgameWinCondition,
-}) => {
+import MyCheckbox from "./MyCheckbox";
+import { Player } from "../../models/Player";
+import { AddSessionModalProps } from "./AddSessionModalProps";
+
+const AddSessionModal = (props: AddSessionModalProps) => {
+  const [sessionName, setSessionName] = useState("");
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
+
+  const handleCheckboxChange = (playerName: string) => {
+    setSelectedPlayers((prevSelectedPlayers: any) => {
+      if (prevSelectedPlayers.includes(playerName)) {
+        // Remove the player from the array
+        return prevSelectedPlayers.filter(
+          (player: string) => player !== playerName
+        );
+      } else {
+        // Add the player to the array
+        return [...prevSelectedPlayers, playerName];
+      }
+    });
+  };
+
+  useEffect(() => {
+    props.setNewSessionPlayers(selectedPlayers);
+  }, [selectedPlayers]);
+
   const handleSubmit = () => {
-    addNewGame();
+    props.addNewSession(sessionName);
   };
 
   const handleClose = () => {
-    onClose();
+    setSessionName("");
+    props.onClose();
   };
 
-  const setTeamBased = () => {
-    setNewBoardgameWinCondition("Team based");
+  const handleSessionNameChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSessionName(event.target.value);
   };
 
-  const setCoOperative = () => {
-    setNewBoardgameWinCondition("Co-operative");
-  };
-
-  const setLeaderboard = () => {
-    setNewBoardgameWinCondition("Leaderboard");
-  };
-
-  // TODO: update list box to this https://react-spectrum.adobe.com/react-aria/examples/image-grid.html
+  // update list box to this https://react-spectrum.adobe.com/react-aria/examples/image-grid.html
   return (
     <div
       className="modal-container"
       style={{
         width: 496,
-        height: 529,
+        height: 861,
         padding: 48,
         background: "#020202",
         border: "1px white solid",
@@ -66,7 +67,7 @@ const AddGameModal = ({
           wordWrap: "break-word",
         }}
       >
-        Add New Game
+        Add New Session
       </div>
       <div
         style={{
@@ -96,10 +97,11 @@ const AddGameModal = ({
               wordWrap: "break-word",
             }}
           >
-            Name
+            Session name
           </div>
           <Input
-            onChange={(e) => setNewBoardgameName(e.target.value)}
+            onChange={handleSessionNameChange}
+            value={sessionName}
             style={{
               alignSelf: "stretch",
               paddingLeft: 12,
@@ -134,7 +136,7 @@ const AddGameModal = ({
               wordWrap: "break-word",
             }}
           >
-            Win conditions
+            Players
           </div>
           <div
             style={{
@@ -145,7 +147,7 @@ const AddGameModal = ({
               display: "flex",
             }}
           >
-            <div
+            {/* <div
               style={{
                 justifyContent: "flex-start",
                 alignItems: "center",
@@ -153,75 +155,28 @@ const AddGameModal = ({
                 display: "inline-flex",
               }}
             >
-              <Checkbox
-                onChange={setTeamBased}
-                style={{
-                  color: "white",
-                  fontSize: 16,
-                  fontFamily: "Montserrat",
-                  fontWeight: "400",
-                  wordWrap: "break-word",
-                }}
-              >
-                <div className="checkbox">
-                  <svg viewBox="0 0 18 18" aria-hidden="true">
-                    <polyline points="1 9 7 14 15 4" />
-                  </svg>
-                </div>
-                Team based
-              </Checkbox>
-            </div>
+              <MyCheckbox text={"Select all"} />
+            </div> */}
             <div
               style={{
-                justifyContent: "flex-start",
-                alignItems: "center",
-                gap: 12,
-                display: "inline-flex",
+                display: "flex",
+                flexDirection: "column",
+                maxHeight: "400px",
+                overflowY: "auto",
+                width: "100%",
               }}
             >
-              <Checkbox
-                onChange={setCoOperative}
-                style={{
-                  color: "white",
-                  fontSize: 16,
-                  fontFamily: "Montserrat",
-                  fontWeight: "400",
-                  wordWrap: "break-word",
-                }}
-              >
-                <div className="checkbox">
-                  <svg viewBox="0 0 18 18" aria-hidden="true">
-                    <polyline points="1 9 7 14 15 4" />
-                  </svg>
+              {props.avaliblePlayers.map((player: Player) => (
+                <div key={player.id} style={{ paddingBottom: "10px" }}>
+                  <MyCheckbox
+                    text={player.name}
+                    id={player.id}
+                    image={player.picture}
+                    handleCheckboxChange={handleCheckboxChange}
+                    isSelected={false}
+                  />
                 </div>
-                Co-operative
-              </Checkbox>
-            </div>
-            <div
-              style={{
-                justifyContent: "flex-start",
-                alignItems: "center",
-                gap: 12,
-                display: "inline-flex",
-              }}
-            >
-              <Checkbox
-                onChange={setLeaderboard}
-                style={{
-                  color: "white",
-                  fontSize: 16,
-                  fontFamily: "Montserrat",
-                  fontWeight: "400",
-                  wordWrap: "break-word",
-                }}
-              >
-                <div className="checkbox">
-                  <svg viewBox="0 0 18 18" aria-hidden="true">
-                    <polyline points="1 9 7 14 15 4" />
-                  </svg>
-                </div>
-                Leaderboard
-              </Checkbox>
+              ))}
             </div>
           </div>
         </div>
@@ -262,7 +217,7 @@ const AddGameModal = ({
               wordWrap: "break-word",
             }}
           >
-            Add game
+            Create session
           </div>
         </Button>
         <Button
@@ -299,4 +254,4 @@ const AddGameModal = ({
   );
 };
 
-export default AddGameModal;
+export default AddSessionModal;

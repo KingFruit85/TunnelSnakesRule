@@ -1,6 +1,5 @@
 export interface PlayerScore {
-    teamName: string;
-    playerName: string;
+    name: string;
     score: number;
-    winner: boolean;
+    team: string;
 }

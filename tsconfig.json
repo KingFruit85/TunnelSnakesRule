@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/Modals/AddSessionModal.js", "components/WinConditions/TeamBased.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "components/Modals/AddSessionModal.tsx", "components/WinConditions/TeamBased.tsx", "components/WinConditions/PlayerRow.tsx"],
   "exclude": ["node_modules"]
 }

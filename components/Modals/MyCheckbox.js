@@ -1,10 +1,11 @@
 import { Input, Checkbox } from "react-aria-components";
 
-const MyCheckbox = ({ text, id, image, handleCheckboxChange }) => {
+const MyCheckbox = ({ text, id, image, handleCheckboxChange, isSelected }) => {
   return (
     <div className="inline-flex flex-row gap-3  ">
       <Checkbox
         onChange={() => handleCheckboxChange(id)}
+        defaultSelected={isSelected}
         style={{
           color: "white",
           fontSize: 18,

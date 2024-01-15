@@ -3,5 +3,4 @@ export interface TeamScore {
     name: string;
     players: string[];
     score: number;
-    winner: boolean;
   }
